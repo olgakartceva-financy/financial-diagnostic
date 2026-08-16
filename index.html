@@ -459,9 +459,7 @@ textarea.export-box{width:100%; min-height:260px; background:rgba(0,0,0,0.3); bo
           <div class="nav-name"><span class="nn-main">Ольга Карцева</span><span class="nn-sub">Фінансова радниця</span></div>
         </button>
         <nav class="nav-links">
-          <a href="#pro">Про діагностику</a>
           <button type="button" class="nav-link-btn" id="btn-nav-olga">Ольга Карцева</button>
-          <a href="#trust">Приватність</a>
         </nav>
       </div>
 
@@ -1066,9 +1064,9 @@ function goBack(){
    ========================================================================= */
 var DELIVERY = {
   formspreeEndpoint: "https://formspree.io/f/YOUR_FORM_ID",   // напр. https://formspree.io/f/mzzenkqp
-  telegramBotToken:  "YOUR_BOT_TOKEN",                          // токен від @BotFather
-  telegramChatId:    "YOUR_CHAT_ID",                            // напр. @your_channel або -1001234567890
-  telegramBotUsername: "YOUR_BOT_USERNAME",                     // без @, напр. olga_kartseva_bot
+  telegramBotToken:  "8285406073:AAGfCw7293ZOuTQ65u346hXAOpgtzsZGECo",  // токен від @BotFather
+  telegramChatId:    "@financial_cheakup",                             // напр. @your_channel або -1001234567890
+  telegramBotUsername: "Financial_Gen_Cours_bot",                // без @, напр. olga_kartseva_bot
   googleCalendarBookingUrl: "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1M4UnRuvH6ZJUsZKpJl9gdOeTtIEJfFE1n5aSfkohTViBo0y__IS6Ir5p0Bvh8-1_xA_bh-nmN", // посилання на ваш Google Calendar booking page
   googleSheetsWebAppUrl: "YOUR_APPS_SCRIPT_URL"                 // URL Google Apps Script Web App (інструкція — у супровідному повідомленні)
 };
@@ -1094,6 +1092,38 @@ function buildSheetRow(c){
     freeText: a.freeText || "",
     fullAnswersJson: JSON.stringify(a)
   };
+}
+
+function tgEscape(s){
+  return String(s === undefined || s === null || s === "" ? "—" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+function buildTelegramText(c){
+  var a = c.answers, d = c.diagnostic;
+  var lines = [
+    "🆕 <b>Нова заявка на фінансову діагностику</b>",
+    "",
+    "👤 <b>Профіль</b>",
+    "Ім'я: " + tgEscape(c.name),
+    "Вік / стать: " + tgEscape(a.age) + " / " + tgEscape(a.gender),
+    "Telegram: " + tgEscape(c.telegram),
+    "Email: " + tgEscape(c.email),
+    "Країна: " + tgEscape(a.geo),
+    "",
+    "💰 <b>Фінансова ситуація</b>",
+    "Дохід: " + tgEscape(a.incomeRange),
+    "Головна проблема: " + tgEscape(joinAns(a.mainProblem)),
+    "Готовність почати: " + tgEscape(a.timeAvailability),
+    "",
+    "🧭 <b>Попередня діагностика</b>",
+    "Архетип: " + tgEscape(d.archetype),
+    "Bottleneck: " + tgEscape(d.bottleneck),
+    "Орієнтовний FFN: " + d.ffn,
+    "",
+    "🕐 " + tgEscape(new Date(c.date).toLocaleString("uk-UA"))
+  ];
+  return lines.join("\n");
 }
 
 function buildSummaryText(c){
@@ -1131,7 +1161,7 @@ function sendSubmission(c){
     fetch("https://api.telegram.org/bot" + DELIVERY.telegramBotToken + "/sendMessage", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ chat_id: DELIVERY.telegramChatId, text: text })
+      body: JSON.stringify({ chat_id: DELIVERY.telegramChatId, text: buildTelegramText(c), parse_mode: "HTML", disable_web_page_preview: true })
     }).catch(function(err){ console.error("Telegram delivery error:", err); });
   }
 
