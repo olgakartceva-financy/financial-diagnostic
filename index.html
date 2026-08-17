@@ -1064,14 +1064,12 @@ function goBack(){
    ========================================================================= */
 var DELIVERY = {
   formspreeEndpoint: "https://formspree.io/f/YOUR_FORM_ID",   // напр. https://formspree.io/f/mzzenkqp
-  telegramBotToken:  "8285406073:AAGfCw7293ZOuTQ65u346hXAOpgtzsZGECo",  // токен від @BotFather
-  telegramChatId:    "@financial_cheakup",                             // напр. @your_channel або -1001234567890
-  telegramBotUsername: "Financial_Gen_Cours_bot",                // без @, напр. olga_kartseva_bot
+  telegramBotUsername: "Financial_Gen_Cours_bot",               // без @, напр. olga_kartseva_bot — це публічна назва, не секрет
   googleCalendarBookingUrl: "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ1M4UnRuvH6ZJUsZKpJl9gdOeTtIEJfFE1n5aSfkohTViBo0y__IS6Ir5p0Bvh8-1_xA_bh-nmN", // посилання на ваш Google Calendar booking page
-  googleSheetsWebAppUrl: "YOUR_APPS_SCRIPT_URL"                 // URL Google Apps Script Web App (інструкція — у супровідному повідомленні)
+  resultsWebAppUrl: "https://script.google.com/macros/s/AKfycbx1Q8mIPIjRX9Bt__CzXr4bClKfqY4kdSCbUb1FDu0XJzCYtY038Q68Uwe1Yn_BS1TW/exec" // URL Google Apps Script Web App — приховано пересилає результат у ваш Telegram-канал
 };
 
-function buildSheetRow(c){
+function buildSubmissionPayload(c){
   var a = c.answers, d = c.diagnostic;
   return {
     date: new Date(c.date).toLocaleString("uk-UA"),
@@ -1094,37 +1092,6 @@ function buildSheetRow(c){
   };
 }
 
-function tgEscape(s){
-  return String(s === undefined || s === null || s === "" ? "—" : s)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
-function buildTelegramText(c){
-  var a = c.answers, d = c.diagnostic;
-  var lines = [
-    "🆕 <b>Нова заявка на фінансову діагностику</b>",
-    "",
-    "👤 <b>Профіль</b>",
-    "Ім'я: " + tgEscape(c.name),
-    "Вік / стать: " + tgEscape(a.age) + " / " + tgEscape(a.gender),
-    "Telegram: " + tgEscape(c.telegram),
-    "Email: " + tgEscape(c.email),
-    "Країна: " + tgEscape(a.geo),
-    "",
-    "💰 <b>Фінансова ситуація</b>",
-    "Дохід: " + tgEscape(a.incomeRange),
-    "Головна проблема: " + tgEscape(joinAns(a.mainProblem)),
-    "Готовність почати: " + tgEscape(a.timeAvailability),
-    "",
-    "🧭 <b>Попередня діагностика</b>",
-    "Архетип: " + tgEscape(d.archetype),
-    "Bottleneck: " + tgEscape(d.bottleneck),
-    "Орієнтовний FFN: " + d.ffn,
-    "",
-    "🕐 " + tgEscape(new Date(c.date).toLocaleString("uk-UA"))
-  ];
-  return lines.join("\n");
-}
 
 function buildSummaryText(c){
   var a = c.answers, d = c.diagnostic;
@@ -1157,20 +1124,12 @@ function sendSubmission(c){
     }).catch(function(err){ console.error("Formspree delivery error:", err); });
   }
 
-  if(DELIVERY.telegramBotToken && DELIVERY.telegramBotToken.indexOf("YOUR_BOT_TOKEN")===-1 && DELIVERY.telegramChatId && DELIVERY.telegramChatId.indexOf("YOUR_CHAT_ID")===-1){
-    fetch("https://api.telegram.org/bot" + DELIVERY.telegramBotToken + "/sendMessage", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ chat_id: DELIVERY.telegramChatId, text: buildTelegramText(c), parse_mode: "HTML", disable_web_page_preview: true })
-    }).catch(function(err){ console.error("Telegram delivery error:", err); });
-  }
-
-  if(DELIVERY.googleSheetsWebAppUrl && DELIVERY.googleSheetsWebAppUrl.indexOf("YOUR_APPS_SCRIPT_URL")===-1){
-    fetch(DELIVERY.googleSheetsWebAppUrl, {
+  if(DELIVERY.resultsWebAppUrl && DELIVERY.resultsWebAppUrl.indexOf("YOUR_APPS_SCRIPT_URL")===-1){
+    fetch(DELIVERY.resultsWebAppUrl, {
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"}, // text/plain уникає CORS preflight до Apps Script
-      body: JSON.stringify(buildSheetRow(c))
-    }).catch(function(err){ console.error("Google Sheets delivery error:", err); });
+      body: JSON.stringify(buildSubmissionPayload(c))
+    }).catch(function(err){ console.error("Telegram delivery error:", err); });
   }
 }
 
